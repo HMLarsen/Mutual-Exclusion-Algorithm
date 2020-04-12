@@ -1,4 +1,4 @@
-# mutual-exclusion
+# Exclusão Mútua
 
 Implementação do algoritmo de Exclusão Mútua para a matéria Sistemas Distribuídos na FURB.
 
