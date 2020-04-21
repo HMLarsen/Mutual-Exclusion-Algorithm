@@ -1,6 +1,7 @@
 package com.furb.br;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
@@ -16,105 +17,92 @@ import lombok.ToString;
 @EqualsAndHashCode(of = { "id" })
 public class Node {
 
-	private final ElectionManager electionManagerInstance = ElectionManager.getInstance();
+	private final Coordenador coordenador = Coordenador.getInstance();
 	private int id;
-	private ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
-	private boolean active = true;
+	private ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+	private boolean ativo = true;
 
 	public Node() {
-		this.id = electionManagerInstance.generateNextID();
-		ses.schedule(getRunnable(),
-				ThreadLocalRandom.current().nextInt(AppConstants.CREATE_NODE_INIT, AppConstants.CREATE_NODE_LIMIT),
+		this.id = coordenador.proximoID();
+
+		scheduler.schedule(run(),
+				ThreadLocalRandom.current().nextInt(AppConstants.NOVO_NODE_INICIO, AppConstants.NOVO_NODE_LIMITE),
 				TimeUnit.SECONDS);
 	}
 
-	private Runnable getRunnable() {
+	private Runnable run() {
 		return () -> {
 			try {
-				if (electionManagerInstance.getCoordinator() == null) {
-					/*
-					 * If the actual node doesn't exist in the list, it's because it was previously
-					 * scheduled, so, it shouldn't run.
-					 */
-					if (electionManagerInstance.getNodes().indexOf(this) == -1) {
-						ses.shutdown();
+				if (coordenador.getCoordenador() == null) {
+
+					if (coordenador.getNodes().indexOf(this) == -1) {
+						scheduler.shutdown();
 						return;
 					}
 
-					startsElection();
+					elegir();
 				}
 
-				/*
-				 * If the actual node is the coordinator or, the actual node doesn't exist in
-				 * the list, stop scheduling this Thread.
-				 */
-				if (this.equals(electionManagerInstance.getCoordinator().getNode())
-						|| electionManagerInstance.getNodes().indexOf(this) == -1) {
-					ses.shutdown();
+				if (this.equals(coordenador.getCoordenador().getNode()) || coordenador.getNodes().indexOf(this) == -1) {
+					scheduler.shutdown();
 					return;
 				}
 
-				consumeResource();
-				scheduleNextExecution();
+				consumirRecurso();
+				schedulerProximaExecucao();
 			} catch (Exception e) {
 				System.out.println(e);
 			}
 		};
 	}
 
-	private void startsElection() {
-		var newCoordinator = findNewCoordinator();
-		electionManagerInstance.setCoordinator(newCoordinator);
-		System.out.println(String.format("[%s] Processo de Eleição finalizado. O novo coordenador é %s.",
-				LocalDateTime.now(), newCoordinator));
+	private void elegir() {
+		NodeCoordenador novoCoordenador = buscaNovoCoordenador();
+		coordenador.setCoordenador(novoCoordenador);
+
+		System.out.println(String.format("[%s] Processo de Eleiï¿½ï¿½o finalizado. O novo coordenador ï¿½ %s.",
+				LocalDateTime.now(), novoCoordenador));
 	}
 
-	/**
-	 * Searchs for a new coordinator. The process with the highest ID will be the
-	 * new coordinator.
-	 * 
-	 * @return a {@link NodeCoordinator}
-	 */
-	private NodeCoordinator findNewCoordinator() {
-		System.out.println(String.format("[%s] Processo de Eleição iniciado pelo %s.", LocalDateTime.now(), this));
-		electionManagerInstance.setInElection(true);
-		return getCoordinator(new NodeCoordinator(this));
+	private NodeCoordenador buscaNovoCoordenador() {
+		System.out.println(String.format("[%s] Processo de Eleiï¿½ï¿½o iniciado pelo %s.", LocalDateTime.now(), this));
+		coordenador.setNovaEleicao(true);
+		return getCoordenador(new NodeCoordenador(this));
 	}
 
-	/**
-	 * If there's no process consuming, starts to consume the resource. (Open a new
-	 * Thread locking the resource for 5-15 sec.)
-	 */
-	private void consumeResource() {
+	private void consumirRecurso() {
 		System.out.println(String.format("[%s] Processo %s solicitou consumir um recurso.", LocalDateTime.now(), this));
-		if (!electionManagerInstance.isUsingResource()) {
-			electionManagerInstance.getCoordinator().lockResourceInNewThread(this);
+		if (!coordenador.isUsandoRecurso()) {
+			coordenador.getCoordenador().travarRecurso(this);
 		} else {
-			// If there's some process consuming, add it to the Queue
-			electionManagerInstance.getCoordinator().getQueue().add(this);
+
+			coordenador.getCoordenador().getFila().add(this);
 			System.out.println(String.format("[%s] Node %s foi adicionado a fila.", LocalDateTime.now(), this));
 		}
 	}
 
-	private void scheduleNextExecution() {
-		var nextInt = ThreadLocalRandom.current().nextInt(AppConstants.CREATE_NODE_INIT,
-				AppConstants.CREATE_NODE_LIMIT);
+	private void schedulerProximaExecucao() {
+		int proximo = ThreadLocalRandom.current().nextInt(AppConstants.NOVO_NODE_INICIO, AppConstants.NOVO_NODE_LIMITE);
+
 		System.out.println(
-				String.format("[%s] Execução finalizada. Processo %s agendou a próxima execução. Daqui %s segundos.",
-						LocalDateTime.now(), this, nextInt));
-		ses.schedule(getRunnable(), nextInt, TimeUnit.SECONDS);
+				String.format("[%s] Execuï¿½ï¿½o finalizada. Processo %s agendou a prï¿½xima execuï¿½ï¿½o. Daqui %s segundos.",
+						LocalDateTime.now(), this, proximo));
+
+		scheduler.schedule(run(), proximo, TimeUnit.SECONDS);
 	}
 
-	private NodeCoordinator getCoordinator(NodeCoordinator actualNode) {
-		var aheadNodes = ElectionManagerUtils.getSortedList().stream().filter(n -> n.id > actualNode.getNode().getId())
-				.collect(Collectors.toList());
-		var possibleCoordinators = aheadNodes.stream().map(n -> {
-			return new NodeCoordinator(n);
+	private NodeCoordenador getCoordenador(NodeCoordenador nodeAtual) {
+		List<Node> listaCoordenador = CoordenadorUtils.listaOrdenada().stream()
+				.filter(n -> n.id > nodeAtual.getNode().getId()).collect(Collectors.toList());
+
+		List<NodeCoordenador> possivelCoordenador = listaCoordenador.stream().map(n -> {
+			return new NodeCoordenador(n);
 		}).collect(Collectors.toList());
-		if (possibleCoordinators.isEmpty()) {
-			return new NodeCoordinator(this);
+
+		if (possivelCoordenador.isEmpty()) {
+			return new NodeCoordenador(this);
 		}
-		return getCoordinator(possibleCoordinators.get(0));
+		return getCoordenador(possivelCoordenador.get(0));
 	}
 
 }

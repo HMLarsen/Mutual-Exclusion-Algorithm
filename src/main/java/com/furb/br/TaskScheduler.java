@@ -9,53 +9,39 @@ import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Responsável por organizar todas as tarefas do ambiente.
+ * ResponsÃ¡vel por organizar todas as tarefas do ambiente.
  */
 public class TaskScheduler {
 
-	/**
-	 * Cria todas as tarefas do ambiente.
-	 */
-	public void scheduleAllTasks() {
-		createTask(AppConstants.KILL_COORDINATOR_TIMER, AppConstants.KILL_COORDINATOR_INTERVAL,
-				AppConstants.KILL_COORDINATOR_METHOD);
-		createTask(AppConstants.CREATE_PROCESS_TIMER, AppConstants.CREATE_PROCESS_INTERVAL,
-				AppConstants.CREATE_PROCESS_METHOD);
+	public void iniciaTarefas() {
+		novaTarefa(AppConstants.FINALIZA_COORDENADOR_TEMPO, AppConstants.FINALIZA_COORDENADOR_INTERVALO,
+				AppConstants.FINALIZA_COORDENADOR_METODO);
+		novaTarefa(AppConstants.NOVO_PROCESSO_TEMPO, AppConstants.NOVO_PROCESSO_INTERVALO,
+				AppConstants.NOVO_PROCESSO_METODO);
 	}
 
-	/**
-	 * Cria uma tarefa no ambiente.
-	 * 
-	 * @param timerName   nome da thread
-	 * @param jobInterval intervalo de execução
-	 * @param methodName  nome do método através da reflexão na classe
-	 */
-	private void createTask(String timerName, long jobInterval, String methodName) {
-		Timer timer = new Timer(timerName);
-		TimerTask task = new TimerTask() {
+	private void novaTarefa(String nomeTarefa, long intervalo, String nomeMetodo) {
+		Timer timer = new Timer(nomeTarefa);
+		TimerTask tarefa = new TimerTask() {
 			public void run() {
 				try {
-					var em = ElectionManager.getInstance();
-					Method method = em.getClass().getMethod(methodName);
-					method.invoke(em);
+					Coordenador coordenador = Coordenador.getInstance();
+					Method metodo = coordenador.getClass().getMethod(nomeMetodo);
+					metodo.invoke(coordenador);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 		};
-		Date startDate = getStartJobDate(jobInterval);
-		timer.schedule(task, startDate, jobInterval);
+		Date inicio = getDataInicio(intervalo);
+		timer.schedule(tarefa, inicio, intervalo);
 	}
 
-	/**
-	 * @param jobInterval intervalo da tarefa
-	 * @return data atual somada com o intervalo
-	 */
-	private Date getStartJobDate(long jobInterval) {
-		LocalDateTime localDate = LocalDateTime.now()
-				.plusNanos(TimeUnit.NANOSECONDS.convert(jobInterval, TimeUnit.MILLISECONDS));
-		Date startDate = Date.from(localDate.atZone(ZoneId.systemDefault()).toInstant());
-		return startDate;
+	private Date getDataInicio(long intervalo) {
+		LocalDateTime data = LocalDateTime.now()
+				.plusNanos(TimeUnit.NANOSECONDS.convert(intervalo, TimeUnit.MILLISECONDS));
+
+		return Date.from(data.atZone(ZoneId.systemDefault()).toInstant());
 	}
 
 }

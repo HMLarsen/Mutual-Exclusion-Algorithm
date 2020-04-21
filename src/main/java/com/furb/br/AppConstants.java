@@ -2,22 +2,26 @@ package com.furb.br;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Constantes para as tarefas
+ * 
+ * @author Lucas Vanderlinde
+ *
+ */
 public interface AppConstants {
 
-	public static final long KILL_COORDINATOR_INTERVAL = TimeUnit.MINUTES.toMillis(1);
-	public static final String KILL_COORDINATOR_TIMER = "KILL_COORDINATOR_TIMER";
-	public static final String KILL_COORDINATOR_METHOD = "killCoordinator";
+	public static final long FINALIZA_COORDENADOR_INTERVALO = TimeUnit.MINUTES.toMillis(1);
+	public static final String FINALIZA_COORDENADOR_TEMPO = "FINALIZA_COORDENADOR_TEMPO";
+	public static final String FINALIZA_COORDENADOR_METODO = "matarCoordenador";
 
-	public static final long CREATE_PROCESS_INTERVAL = TimeUnit.SECONDS.toMillis(40);
-	public static final String CREATE_PROCESS_TIMER = "CREATE_PROCESS_TIMER";
-	public static final String CREATE_PROCESS_METHOD = "createProcess";
+	public static final long NOVO_PROCESSO_INTERVALO = TimeUnit.SECONDS.toMillis(40);
+	public static final String NOVO_PROCESSO_TEMPO = "NOVO_PROCESSO_TEMPO";
+	public static final String NOVO_PROCESSO_METODO = "novoProcesso";
 
-	// IN SECONDS
-	public static final short CREATE_NODE_INIT = 10;
-	public static final short CREATE_NODE_LIMIT = 26;
+	public static final short NOVO_NODE_INICIO = 10;
+	public static final short NOVO_NODE_LIMITE = 26;
 
-	// IN MILLIS
-	public static final short LOCK_RESOURCE_INIT = 5000;
-	public static final short LOCK_RESOURCE_LIMIT = 15000;
+	public static final short TRAVAR_RECURSO_INICIO = 5000;
+	public static final short TRAVAR_RECURSO_LIMITE = 15000;
 
 }
